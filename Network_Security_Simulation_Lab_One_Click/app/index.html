@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network Security Simulation Lab</title>
+<style>
+:root{--bg:#07111f;--panel:#101f32;--panel2:#152941;--text:#eaf2ff;--muted:#a9bbd1;--green:#00e59b;--cyan:#50caff;--red:#ff667d;--amber:#ffd166;--line:#29435f}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(140deg,#06101d,#0b1830 55%,#081321);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{padding:25px max(20px,calc((100% - 1200px)/2));border-bottom:1px solid var(--line);background:#07111fe8}
+.kicker{color:var(--green);text-transform:uppercase;letter-spacing:.14em;font-weight:800;font-size:.75rem}
+h1{margin:.25rem 0;font-size:clamp(1.6rem,3vw,2.4rem)}p{color:var(--muted);margin:.3rem 0}
+.wrap{max-width:1200px;margin:auto;padding:22px 18px 50px}
+.notice{border:1px solid #6e5b28;background:#332b19;color:#ffe6a2;border-radius:12px;padding:12px 15px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:15px}.card{grid-column:span 6;background:linear-gradient(160deg,var(--panel),#0d1a2b);border:1px solid var(--line);border-radius:15px;padding:17px;box-shadow:0 8px 28px #0002}
+.wide{grid-column:span 12}.third{grid-column:span 4}.card h2{font-size:1.05rem;margin:0 0 12px}.muted{color:var(--muted)}.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 9px;font-size:.78rem;color:var(--cyan);margin:2px}
+.topology{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:center;text-align:center}
+.node{border:1px solid var(--line);background:var(--panel2);padding:14px 8px;border-radius:12px}.node strong{display:block}.node small{color:var(--muted)}
+.links{display:flex;justify-content:center;gap:7px;color:var(--cyan);margin:8px 0}
+button{border:0;background:var(--green);color:#062019;padding:10px 14px;border-radius:9px;font-weight:800;cursor:pointer;margin:4px 4px 4px 0}button.secondary{background:#203a57;color:var(--text);border:1px solid #3b5d7f}button:hover{filter:brightness(1.08)}
+table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{text-align:left;padding:9px 7px;border-bottom:1px solid var(--line)}th{color:var(--cyan)}code{color:#b6f4d8;background:#07111f;padding:2px 5px;border-radius:4px}
+.result{padding:10px 12px;border-radius:9px;background:#0a1726;border:1px solid var(--line);margin:8px 0}.pass{color:var(--green);font-weight:800}.fail{color:var(--red);font-weight:800}.info{color:var(--amber)}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#d7e8ff;background:#07111f;border:1px solid var(--line);padding:12px;border-radius:9px;max-height:260px;overflow:auto}
+footer{color:var(--muted);font-size:.82rem;margin-top:20px}
+@media(max-width:760px){.card,.third{grid-column:span 12}.topology{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="kicker">Hands-on concepts · Offline local simulator</div><h1>Network Security Simulation Lab</h1><p>VLAN segmentation · ACL policy · Firewall decisions · Traffic analysis · IDS alert simulation</p></header>
+<main class="wrap">
+<div class="notice"><strong>Simulation mode:</strong> this dashboard models expected policy decisions. It does not configure real networking hardware, capture live packets, or run a real IDS/IPS engine.</div>
+<div class="grid">
+<section class="card wide">
+<h2>01 / Lab topology</h2>
+<div class="topology">
+<div class="node"><strong>Admin workstation</strong><small>VLAN 10 · 192.168.10.10</small></div>
+<div class="node"><strong>Employee workstation</strong><small>VLAN 20 · 192.168.20.10</small></div>
+<div class="node"><strong>Test server</strong><small>VLAN 30 · 192.168.30.10</small></div>
+</div>
+<div class="links"><span>↓ Gateway .1</span><span>↓ Gateway .1</span><span>↓ Gateway .1</span></div>
+<p>All endpoints are represented as test identities. Router gateways: <code>192.168.10.1</code>, <code>192.168.20.1</code>, <code>192.168.30.1</code>.</p>
+</section>
+<section class="card">
+<h2>02 / Run automated policy tests</h2>
+<p class="muted">Runs predefined scenarios against the policy model and displays simulated outcomes.</p>
+<button id="runTests">Run all tests</button><button class="secondary" id="clearTests">Clear results</button>
+<div id="testResults" aria-live="polite"><p>Click “Run all tests” to start.</p></div>
+</section>
+<section class="card">
+<h2>03 / Test a connection</h2>
+<label for="source">Source</label><br>
+<select id="source"><option value="admin">Admin workstation (VLAN 10)</option><option value="employee" selected>Employee workstation (VLAN 20)</option><option value="server">Test server (VLAN 30)</option></select><br><br>
+<label for="destination">Destination</label><br>
+<select id="destination"><option value="admin">Admin workstation</option><option value="employee">Employee workstation</option><option value="server" selected>Test server</option><option value="internet">External / Internet</option></select><br><br>
+<label for="protocol">Protocol / service</label><br>
+<select id="protocol"><option value="HTTPS">HTTPS / TCP 443</option><option value="SSH">SSH / TCP 22</option><option value="HTTP">HTTP / TCP 80</option><option value="ICMP">ICMP / ping</option><option value="DNS">DNS / UDP 53</option><option value="OTHER">Other traffic</option></select><br><br>
+<button id="checkConnection">Evaluate policy</button>
+<div id="connectionResult" aria-live="polite"><p>Choose a flow and evaluate it.</p></div>
+</section>
+<section class="card wide">
+<h2>04 / Simulated traffic-analysis console</h2>
+<p class="muted">Sample events for practicing interpretation. These are generated examples, not packets captured from your device.</p>
+<button class="secondary" id="loadTraffic">Load sample events</button>
+<button class="secondary" id="filterSuspicious">Show security-relevant events</button>
+<button class="secondary" id="resetTraffic">Reset</button>
+<div id="traffic"></div>
+</section>
+<section class="card">
+<h2>05 / IDS alert rule examples</h2>
+<p>Illustrative Suricata-style rules are included in <code>configs/suricata/local.rules</code>.</p>
+<div class="result"><span class="info">ALERT EXAMPLE</span><br>HTTP request URI contains <code>/lab-alert</code> on TCP port 80.</div>
+<div class="result"><span class="info">ALERT EXAMPLE</span><br>DNS query contains the reserved test suffix <code>lab-test.invalid</code>.</div>
+<p class="muted">Rules require a separate Suricata installation and traffic reaching the monitored interface to generate real alerts.</p>
+</section>
+<section class="card">
+<h2>06 / Export evidence</h2>
+<p class="muted">Export a timestamped JSON report of the simulator test run. It is not a real-device validation report.</p>
+<button id="downloadReport">Download report (.json)</button>
+<div id="exportStatus" class="muted"></div>
+</section>
+</div>
+<footer>Educational use only. Test only on networks and systems you own or have explicit permission to assess. No external traffic is generated by this app.</footer>
+</main>
+<script>
+const endpoints={
+ admin:{name:"Admin workstation",vlan:10,ip:"192.168.10.10",net:"192.168.10.0/24"},
+ employee:{name:"Employee workstation",vlan:20,ip:"192.168.20.10",net:"192.168.20.0/24"},
+ server:{name:"Test server",vlan:30,ip:"192.168.30.10",net:"192.168.30.0/24"},
+ internet:{name:"External / Internet",vlan:null,ip:"203.0.113.10",net:"documentation range"}
+};
+let testRun=[];
+let trafficEvents=[
+ {time:"10:00:01",src:"192.168.20.10",dst:"192.168.30.10",proto:"TCP/443",event:"Employee HTTPS request to test server",risk:"normal"},
+ {time:"10:00:02",src:"192.168.20.10",dst:"192.168.10.10",proto:"ICMP",event:"Employee ping to Admin workstation",risk:"blocked"},
+ {time:"10:00:03",src:"192.168.10.10",dst:"192.168.30.10",proto:"TCP/22",event:"Admin SSH to test server",risk:"allowed"},
+ {time:"10:00:04",src:"192.168.20.10",dst:"192.168.30.10",proto:"TCP/22",event:"Employee SSH attempt to server",risk:"blocked"},
+ {time:"10:00:05",src:"192.168.30.10",dst:"192.168.10.10",proto:"TCP/445",event:"Server-originated connection to Admin segment",risk:"review"}
+];
+const policy=(s,d,p)=>{
+ if(s===d && d!=="internet") return {allow:true,reason:"Same-segment traffic; inter-VLAN ACL is not involved in this model."};
+ if(s==="employee" && d==="admin") return {allow:false,reason:"Policy denies Employee VLAN (20) to Admin VLAN (10)."};
+ if(s==="employee" && d==="server" && p==="HTTPS") return {allow:true,reason:"Explicit allow: Employee VLAN to test-server HTTPS (TCP/443)."};
+ if(s==="employee" && d==="server") return {allow:false,reason:"Only HTTPS is permitted from Employee VLAN to the test server."};
+ if(s==="admin" && d==="server" && ["SSH","HTTPS","ICMP"].includes(p)) return {allow:true,reason:"Admin-to-server service is allowed by the lab policy."};
+ if(s==="server" && ["admin","employee"].includes(d)) return {allow:false,reason:"Server-to-user-segment initiation is denied in this simplified policy model."};
+ if(d==="internet" && s!=="server" && ["HTTPS","DNS","ICMP"].includes(p)) return {allow:true,reason:"Example outbound policy allows selected protocols; this is illustrative only."};
+ if(s==="server" && d==="internet") return {allow:false,reason:"Example policy denies server-initiated outbound traffic by default."};
+ return {allow:false,reason:"No explicit allow rule matched; default deny."};
+};
+function evaluate(s,d,p){return {...policy(s,d,p),source:s,destination:d,protocol:p,sourceIp:endpoints[s].ip,destinationIp:endpoints[d].ip};}
+function renderResult(el,r){el.innerHTML=`<div class="result"><strong class="${r.allow?'pass':'fail'}">${r.allow?'SIMULATED ALLOW':'SIMULATED DENY'}</strong><p>${r.reason}</p><small>${endpoints[r.source].ip} → ${endpoints[r.destination].ip} · ${r.protocol}</small></div>`;}
+document.getElementById("checkConnection").addEventListener("click",()=>{
+ const r=evaluate(document.getElementById("source").value,document.getElementById("destination").value,document.getElementById("protocol").value);
+ renderResult(document.getElementById("connectionResult"),r);
+});
+const scenarios=[
+ ["Employee HTTPS to server", "employee","server","HTTPS",true],
+ ["Employee SSH to server", "employee","server","SSH",false],
+ ["Employee to Admin", "employee","admin","ICMP",false],
+ ["Admin SSH to server", "admin","server","SSH",true],
+ ["Server initiating to Admin", "server","admin","OTHER",false],
+ ["Employee to external using HTTPS", "employee","internet","HTTPS",true]
+];
+document.getElementById("runTests").addEventListener("click",()=>{
+ testRun=scenarios.map(([name,s,d,p,expected])=>{const r=evaluate(s,d,p);return {name,...r,expected,pass:r.allow===expected};});
+ const passed=testRun.filter(t=>t.pass).length;
+ document.getElementById("testResults").innerHTML=`<p><strong>${passed}/${testRun.length} model tests passed.</strong> These verify the simulator's policy logic, not a live network.</p>`+
+ testRun.map(t=>`<div class="result"><span class="${t.pass?'pass':'fail'}">${t.pass?'PASS':'FAIL'}</span> — ${t.name}<br><small>${t.reason}</small></div>`).join("");
+});
+document.getElementById("clearTests").addEventListener("click",()=>{testRun=[];document.getElementById("testResults").innerHTML="<p>Results cleared.</p>";});
+function renderTraffic(list){document.getElementById("traffic").innerHTML="<table><thead><tr><th>Time</th><th>Source</th><th>Destination</th><th>Protocol</th><th>Event</th><th>Model label</th></tr></thead><tbody>"+list.map(e=>`<tr><td>${e.time}</td><td>${e.src}</td><td>${e.dst}</td><td>${e.proto}</td><td>${e.event}</td><td class="${e.risk==='normal'?'pass':e.risk==='allowed'?'pass':'info'}">${e.risk.toUpperCase()}</td></tr>`).join("")+"</tbody></table>";}
+document.getElementById("loadTraffic").addEventListener("click",()=>renderTraffic(trafficEvents));
+document.getElementById("filterSuspicious").addEventListener("click",()=>renderTraffic(trafficEvents.filter(e=>e.risk!=="normal"&&e.risk!=="allowed")));
+document.getElementById("resetTraffic").addEventListener("click",()=>document.getElementById("traffic").innerHTML="");
+document.getElementById("downloadReport").addEventListener("click",()=>{
+ const report={title:"Network Security Simulation Lab — Simulator Report",generatedAt:new Date().toISOString(),mode:"simulation-only",note:"Results validate only the local policy model. No live network device, packet capture, firewall, or IDS was tested.",tests:testRun,topology:Object.values(endpoints),sampleTraffic:trafficEvents};
+ const blob=new Blob([JSON.stringify(report,null,2)],{type:"application/json"});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="network-security-simulation-report.json";a.click();URL.revokeObjectURL(a.href);
+ document.getElementById("exportStatus").textContent="Report generated from current simulator state.";
+});
+</script>
+</body></html>

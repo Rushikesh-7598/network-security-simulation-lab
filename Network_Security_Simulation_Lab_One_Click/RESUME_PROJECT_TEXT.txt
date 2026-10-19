@@ -1,0 +1,8 @@
+Use this only to describe the software simulator before doing any real device configuration:
+
+Network Security Policy Simulator | Python, HTML, CSS, JavaScript
+- Built a local interactive simulator for VLAN-based network segmentation, ACL policy decisions, and least-privilege connectivity scenarios.
+- Implemented automated policy test cases for allowed and denied network flows and added JSON report export for repeatable model-level verification.
+- Created example Cisco ACL/VLAN configurations and Suricata alert rules as reference artifacts for future hands-on validation.
+
+Important: this wording describes the simulator code, not a deployed physical network or verified real IDS/IPS operation.

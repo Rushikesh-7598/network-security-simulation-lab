@@ -1,0 +1,18 @@
+! Educational reference only. Validate on a simulator before use.
+! Router-on-a-stick subinterfaces; change physical interface if required.
+interface GigabitEthernet0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+interface GigabitEthernet0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.20.1 255.255.255.0
+ ip access-group EMPLOYEES_IN in
+interface GigabitEthernet0/0.30
+ encapsulation dot1Q 30
+ ip address 192.168.30.1 255.255.255.0
+ip access-list extended EMPLOYEES_IN
+ permit tcp 192.168.20.0 0.0.0.255 host 192.168.30.10 eq 443
+ deny ip 192.168.20.0 0.0.0.255 192.168.10.0 0.0.0.255 log
+ deny ip 192.168.20.0 0.0.0.255 192.168.30.0 0.0.0.255 log
+ permit ip 192.168.20.0 0.0.0.255 any
+! Note: this simple stateless ACL is not a complete enterprise firewall policy.
